@@ -10,6 +10,12 @@ const UserService = {
         .first()
         .then(user => !!user)
     },
+    hasUserWithUserName(db, userName) {
+        return db('users')
+        .where('user_name', userName)
+        .first()
+        .then(user => !!user)
+    },
     insertUser(db, newUser) {
         return db
         .insert(newUser)

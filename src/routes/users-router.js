@@ -29,25 +29,34 @@ usersRouter
                 .then(hasUserWithEmail => {
                     if(hasUserWithEmail)
                         return res.status(400).json({ error: `Email already taken` })
-                    
-                    return UsersService.hashedPassword(password)
-                        .then(hashedPassword => {
-                            const newUser = {
-                                user_name: userName,
-                                email,
-                                password: hashedPassword,
-                                created_at: 'now()'
-                            }
+                        
+                    UsersService.hasUserWithUserName(
+                        req.app.get('db'),
+                        userName
+                    )
+                        .then(hasUserWithUserName => {
+                            if(hasUserWithUserName)
+                                return res.status(400).json({ error: `username already taken` })
                             
-                            return UsersService.insertUser(
-                                req.app.get('db'),
-                                newUser
-                            )
-                                .then(user => {
-                                    res
-                                        .status(201)
-                                        .location(path.posix.join(req.originalUrl, `/${user.id}`))
-                                        .json(UsersService.serializeUser(user))
+                            return UsersService.hashedPassword(password)
+                                .then(hashedPassword => {
+                                    const newUser = {
+                                        user_name: userName,
+                                        email,
+                                        password: hashedPassword,
+                                        created_at: 'now()'
+                                    }
+                                    
+                                    return UsersService.insertUser(
+                                        req.app.get('db'),
+                                        newUser
+                                    )
+                                        .then(user => {
+                                            res
+                                                .status(201)
+                                                .location(path.posix.join(req.originalUrl, `/${user.id}`))
+                                                .json(UsersService.serializeUser(user))
+                                        })
                                 })
                         })
                 })
