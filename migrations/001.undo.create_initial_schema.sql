@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS incident;
+DROP TABLE IF EXISTS users;
