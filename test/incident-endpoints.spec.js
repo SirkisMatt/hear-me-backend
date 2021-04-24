@@ -3,9 +3,9 @@ const knex = require('knex')
 const app = require('../src/app')
 const { makeUsersArray } = require('./user.fixtures')
 const { makeIncidentsArray } = require('./incident.fixtures')
-const { makeAuthHeader } = require('./test-helpers')
+const { makeAuthHeader, filterIncidentsForUser, cleanTables } = require('./test-helpers')
 
-describe.only('incident Endpoints', function() {
+describe('incident Endpoints', function() {
     let db
 
     before('make knex instance', () => {
@@ -18,9 +18,9 @@ describe.only('incident Endpoints', function() {
 
     after('disconnect from db', () => db.destroy())
 
-    before('clean the table', () => db.raw('TRUNCATE users, incident RESTART IDENTITY CASCADE'))
-
-    afterEach('cleanup', () => db.raw('TRUNCATE users, incident RESTART IDENTITY CASCADE'))
+    before('cleanup', () => cleanTables(db))
+  
+    afterEach('cleanup', () => cleanTables(db))
 
     describe(`GET /api/incident`, () => {
         context(`Given no incidents`, () => {
@@ -47,7 +47,7 @@ describe.only('incident Endpoints', function() {
                 })
             })
 
-            it('responds with 200 and all of the goals', () => {
+            it('responds with 200 and all of the incidents', () => {
                 let expectedIncidents = []
                 testIncidents.map(incident => {
                     expectedIncidents.push({
@@ -70,19 +70,83 @@ describe.only('incident Endpoints', function() {
     describe(`GET /api/incident/user`, () => {
         context(`Given no incidents`, () => {
             const testUsers = makeUsersArray()
-            beforeEach('insert Incidents', () => {
+            beforeEach('insert users', () => {
                 return db
                 .into('users')
                 .insert(testUsers)
             })
 
-            console.log(makeAuthHeader(testUsers[0]))
             it(`responds with 404`, () => {
                 
                 return supertest(app)
                     .get(`/api/incident/user`)
                     .set('Authorization', makeAuthHeader(testUsers[0]))
                     .expect(404, { error: { message: `No Incidents` }})
+            })
+        })
+
+        context(`Given there are incidents`, () => {
+            const testUsers = makeUsersArray()
+            const testIncidents = makeIncidentsArray()
+
+            beforeEach('insert users and incidents', () => {
+                return db
+                .into('users')
+                .insert(testUsers)
+                .then(() => {
+                    return db
+                    .into('incident')
+                    .insert(testIncidents)
+                })
+            })
+
+            it('responds with 200 and all of the incidents', () => {
+              
+                let testUserIncidents = testIncidents.filter(item => 
+                    item.user_id === testUsers[0].id
+                )
+                
+                return supertest(app)
+                    .get('/api/incident/user')
+                    .set('Authorization', makeAuthHeader(testUsers[0]))
+                    .expect(200, filterIncidentsForUser(testUserIncidents))
+            })
+
+        })
+    })
+    describe(`POST /api/incident`, () => {
+        context(`Given there are users`, () => {
+            const testUsers = makeUsersArray()
+            beforeEach('insert users', () => {
+                return db
+                .into('users')
+                .insert(testUsers)
+            })
+
+            it(`responds 201, serialized incident`, async () => {
+                const newIncident = {
+                    userName: "testUser5",
+                    timeOfIncident: "2021-04-16T08:00:00.000Z",
+                    type: "race",
+                    description: "Lorem isum",
+                    coordinates: [-79.47606660156234,45.070533083787325],
+                }
+                await supertest(app)
+                  .post('/api/incident')
+                  .set('Authorization', makeAuthHeader(testUsers[0]))
+                  .send(newIncident)
+                  .expect(201)
+                  expect(res => {
+                    expect(res.body).to.have.property('id')
+                    expect(res.body.user_name).to.eql(newIncident.userName)
+                    expect(res.body.type).to.eql(newIncident.type)
+                    expect(res.body.description).to.eql(newIncident.description)
+                    expect(res.body.coordinates).to.eql(newIncident.coordinates.toString())
+                    expect(actual).to.eql(expected)
+                    const expectedDate = new Date().toLocaleString('en', { timeZone: 'UTC' })
+                    const actualDate = new Date(res.body.createAt).toLocaleString()
+                    expect(actualDate).to.eql(expectedDate)
+                  })
             })
         })
     })

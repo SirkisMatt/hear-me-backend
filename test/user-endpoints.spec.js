@@ -3,6 +3,7 @@ const knex = require('knex')
 const bcrypt = require('bcryptjs')
 const app = require('../src/app')
 const { makeUsersArray } = require('./user.fixtures')
+const { cleanTables } = require('./test-helpers')
 
 describe('users Endpoints', function() {
     let db
@@ -15,17 +16,62 @@ describe('users Endpoints', function() {
         app.set('db', db)
       })
 
-    after('disconnect from db', () => db.destroy())
+      after('disconnect from db', () => db.destroy())
 
-    before('clean the table', () => db.raw('TRUNCATE users RESTART IDENTITY CASCADE'))
+      before('cleanup', () => cleanTables(db))
+    
+      afterEach('cleanup', () => cleanTables(db))
 
-    afterEach('cleanup',() => db.raw('TRUNCATE users RESTART IDENTITY CASCADE'))
+      describe(`POST /api/users/register`, () => {
+        context(`Happy path`, () => {
+                
+            it(`responds 201, serialized user, storing bcryped password`, async () => {
+              const newUser = {
+                userName: 'testuser_name',
+                email: 'testtest@test.com',
+                password: '11AAaa!!'
+              }
+              await supertest(app)
+                .post('/api/users/register')
+                .send(newUser)
+                .expect(201)
+                .expect(res => {
+                  expect(res.body).to.have.property('id')
+                  expect(res.body.userName).to.eql(newUser.userName)
+                  expect(res.body.email).to.eql(newUser.email)
+                  expect(res.body).to.not.have.property('password')
+                  const expectedDate = new Date().toLocaleString()
+                  const actualDate = new Date(res.body.createdAt).toLocaleString()
+                  expect(actualDate).to.eql(expectedDate)
+                })
+                expect(res =>
+                    db
+                        .from('users')
+                        .select('*')
+                        .where( 'id', res.body.id )
+                        .first()
+                        .then(row => {
+                        expect(row.body.user_name).to.eql(newUser.userName)
+                        expect(row.body.email).to.eql(newUser.email)
+                        const expectedDate = new Date().toLocaleString('en', { timeZone: 'UTC' })
+                        const actualDate = new Date(row.created_At).toLocaleString()
+                        expect(actualDate).to.eql(expectedDate)
+        
+                        return bcrypt.compare(newUser.password, row.password)
+                    })
+                    .then(compareMatch => {
+                        expect(compareMatch).to.be.true
+                    })
+                )
+            })
+        })
+    })
 
     describe(`POST /api/users/register`, () => {
         context(`User Validation`, () => {
             const testUsers = makeUsersArray()
             
-            this.beforeEach('insert users', () => {
+            beforeEach('insert users', () => {
                 return db 
                 .into('users')
                 .insert(testUsers)
@@ -128,51 +174,10 @@ describe('users Endpoints', function() {
                       .expect(400, { error: `Email already taken` })
                   })
             })
-            context(`Happy path`, () => {
-                
-                it(`responds 201, serialized user, storing bcryped password`, async () => {
-                  const newUser = {
-                    userName: 'testuser_name',
-                    email: 'testtest@test.com',
-                    password: '11AAaa!!'
-                  }
-                  await supertest(app)
-                    .post('/api/users/register')
-                    .send({newUser})
-                    expect(201)
-                    expect(res => {
-                      expect(res.body).to.have.property('id')
-                      expect(res.body.user_name).to.eql(newUser.userName)
-                      expect(res.body.email).to.eql(newUser.email)
-                      expect(res.body).to.not.have.property('password')
-                      expect(actual).to.eql(expected)
-                      const expectedDate = new Date().toLocaleString('en', { timeZone: 'UTC' })
-                      const actualDate = new Date(res.body.created_at).toLocaleString()
-                      expect(actualDate).to.eql(expectedDate)
-                    })
-                    expect(res =>
-                        db
-                            .from('users')
-                            .select('*')
-                            .where( 'id', res.body.id )
-                            .first()
-                            .then(row => {
-                            expect(row.body.user_name).to.eql(newUser.userName)
-                            expect(row.body.email).to.eql(newUser.email)
-                            const expectedDate = new Date().toLocaleString('en', { timeZone: 'UTC' })
-                            const actualDate = new Date(row.created_at).toLocaleString()
-                            expect(actualDate).to.eql(expectedDate)
-            
-                            return bcrypt.compare(newUser.password, row.password)
-                        })
-                        .then(compareMatch => {
-                            expect(compareMatch).to.be.true
-                        })
-                        .done()
-                    )
-                })
-            })   
+              
         })
+         
     })
+    
 })
    

@@ -21,7 +21,7 @@ const UserService = {
         .insert(newUser)
         .into('users')
         .returning('*')
-        .then((user) => {return user[0]})
+        .then(([user]) => user)
     },
     validatePassword(password) {
         if(password.length < 8) {
