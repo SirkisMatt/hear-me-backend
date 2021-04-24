@@ -9,7 +9,7 @@ const IncidentService = {
     getUserIncidents(knex, userId) {
         return knex('incident')
         .select('*')
-        .where('userId', userId)
+        .where('user_id', userId)
     },
     insertIncident(db, newIncident) {
         return db
@@ -17,6 +17,28 @@ const IncidentService = {
         .into('incident')
         .returning('*')
         .then(([incident]) => incident)
+    },
+    getById(knex, userId, id) {
+        return knex('incident')
+            .select('*')
+            .where({
+            'user_id': userId,
+            'id': id
+        }).first()
+    },
+    deleteIncident(knex, id) {
+        return knex('incident')
+            .where({ id })
+            .delete()
+    },
+    updateIncident(knex, id, newIncidentFields) {
+        return knex('incident')
+            .where({ id })
+            .update(newIncidentFields)
+            .returning('*')
+            .then(rows => {
+                return rows[0]
+            })
     },
     serializeIncident(incident) {
         return{
@@ -26,6 +48,7 @@ const IncidentService = {
             type: incident.type,
             description: xss(incident.description),
             coordinates: xss(incident.coordinates),
+            createdAt: incident.created_at
         }
     }
 }

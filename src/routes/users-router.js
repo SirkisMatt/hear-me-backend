@@ -29,7 +29,7 @@ usersRouter
                 .then(hasUserWithEmail => {
                     if(hasUserWithEmail)
                         return res.status(400).json({ error: `Email already taken` })
-                        
+
                     UsersService.hasUserWithUserName(
                         req.app.get('db'),
                         userName
@@ -44,7 +44,6 @@ usersRouter
                                         user_name: userName,
                                         email,
                                         password: hashedPassword,
-                                        created_at: 'now()'
                                     }
                                     
                                     return UsersService.insertUser(
