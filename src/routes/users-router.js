@@ -29,7 +29,7 @@ usersRouter
                 .then(hasUserWithEmail => {
                     if(hasUserWithEmail)
                         return res.status(400).json({ error: `Email already taken` })
-                        
+
                     UsersService.hasUserWithUserName(
                         req.app.get('db'),
                         userName
