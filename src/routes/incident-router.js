@@ -20,7 +20,7 @@ incidentRouter
 
         if(!timeOfIncident) 
                 return res.status(400).json({
-                    error: `Missing timeOfIncident in request body`
+                    error: `Missing 'time_of_incident' in request body`
                 })
         const newIncident = {
             'user_name': userName,
@@ -29,11 +29,12 @@ incidentRouter
             coordinates
         }
 
-        for (const [key, value] of Object.entries(newIncident))
-            if(value.length === 0)
-                return res.status(400).json({
-                    error: `Missing '${key}' in request body`
-                })
+
+        for (const field of [ 'type', 'coordinates', ])
+        if (!req.body[field])
+            return res.status(400).json({
+                error: `Missing '${field}' in request body`
+            })
             
             
         newIncident.user_id = userId
@@ -108,20 +109,22 @@ incidentRouter
     })
     .patch(jsonBodyParser, (req, res, next) => {
         const { timeOfIncident, type, description, coordinates } = req.body
-        if(!timeOfIncident) 
-                return res.status(400).json({
-                    error: `Missing timeOfIncident in request body`
-                })
+        // if(!timeOfIncident) 
+        //         return res.status(400).json({
+        //             error: `Missing time_of_incident in request body`
+        //         })
         const incidentToUpdate = { 
             'time_of_incident': timeOfIncident, 
             type, description, 
             coordinates 
         }
 
-        for (const [key, value] of Object.entries(incidentToUpdate))
-        if(value.length === 0)
+        const numberOfValues = Object.values(incidentToUpdate).filter(Boolean).length
+        if(numberOfValues === 0)
             return res.status(400).json({
-                error: `Missing '${key}' in request body`
+                error: {
+                    message: `Request body must contain title, description, tree_bet, complete_by, goal_type_id or date_published`
+                }
             })
 
         IncidentService.updateIncident(

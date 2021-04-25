@@ -54,11 +54,12 @@ describe('incident Endpoints', function() {
                 testIncidents.map(incident => {
                     expectedIncidents.push({
                         'id': incident.id,
+                        'userId': incident.user_id,
                         'userName': incident.user_name,
                         'timeOfIncident': incident.time_of_incident,
                         'type': incident.type,
                         'description': incident.description,
-                        'coordinates': incident.coordinates.toString(),
+                        'coordinates': incident.coordinates.map(String),
                         'createdAt': incident.created_at
                     })
                 })
@@ -137,7 +138,6 @@ describe('incident Endpoints', function() {
 
             requiredFields.forEach(field => {
                 const newIncident = {
-                    userName: "testUser5",
                     timeOfIncident: "2021-04-16T08:00:00.000Z",
                     type: "race",
                     coordinates: [-79.47606660156234,45.070533083787325],
@@ -168,22 +168,6 @@ describe('incident Endpoints', function() {
                 .send(newIncident)
                 .expect(400, {
                     error: `Missing 'time_of_incident' in request body`,
-                })
-            })
-
-            const missingUserName = {
-                timeOfIncident: "2021-04-16T08:00:00.000Z",
-                type: "race",
-                coordinates: [-79.47606660156234,45.070533083787325],
-            }
-
-            it(`responds with 400 required error when user_name is missing`, () => {
-                return supertest(app)
-                .post('/api/incident')
-                .set('Authorization', makeAuthHeader(testUsers[0]))
-                .send(missingUserName)
-                .expect(400, {
-                    error: `Missing 'user_name' in request body`,
                 })
             })
         })
@@ -265,7 +249,7 @@ describe('incident Endpoints', function() {
                     .send({ irreverantField: 'foo' })
                     .expect(400, {
                         error: {
-                            message: `Request body must contain timeOfIncident, description, type or coordinates.`
+                            message: "Request body must contain title, description, tree_bet, complete_by, goal_type_id or date_published"
                         }
                     })
             })
