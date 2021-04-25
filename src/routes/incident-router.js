@@ -14,8 +14,14 @@ incidentRouter
         const token = authHeader && authHeader.split(' ')[1]
         if (token == null) return res.status(401)
         const userId = AuthService.verifyJwt(token).id
+        const userName = AuthService.verifyJwt(token).sub
 
-        const { userName, timeOfIncident, type, coordinates } = req.body
+        const { timeOfIncident, type, coordinates, description } = req.body
+
+        if(!timeOfIncident) 
+                return res.status(400).json({
+                    error: `Missing 'time_of_incident' in request body`
+                })
         const newIncident = {
             'user_name': userName,
             'time_of_incident': timeOfIncident,
@@ -23,12 +29,16 @@ incidentRouter
             coordinates
         }
 
-        for (const [key, value] of Object.entries(newIncident))
-            if(value == null)
-                return res.status(400).json({
-                    error: `Missing '${key}' in request body`
-                })
+
+        for (const field of [ 'type', 'coordinates', ])
+        if (!req.body[field])
+            return res.status(400).json({
+                error: `Missing '${field}' in request body`
+            })
+            
+            
         newIncident.user_id = userId
+        newIncident.description = description
 
         IncidentService.insertIncident(
             req.app.get('db'),
@@ -99,6 +109,10 @@ incidentRouter
     })
     .patch(jsonBodyParser, (req, res, next) => {
         const { timeOfIncident, type, description, coordinates } = req.body
+        // if(!timeOfIncident) 
+        //         return res.status(400).json({
+        //             error: `Missing time_of_incident in request body`
+        //         })
         const incidentToUpdate = { 
             'time_of_incident': timeOfIncident, 
             type, description, 
@@ -109,7 +123,7 @@ incidentRouter
         if(numberOfValues === 0)
             return res.status(400).json({
                 error: {
-                    message: `Request body must contain timeOfIncident, description, type or coordinates.`
+                    message: `Request body must contain title, description, tree_bet, complete_by, goal_type_id or date_published`
                 }
             })
 

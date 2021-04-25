@@ -20,11 +20,12 @@ function filterIncidentsForUser(testUserIncidents) {
         expectedIncidents.push(
             {
                 'id': testUserIncidents[i].id,
+                'userId': testUserIncidents[i].user_id,
                 'userName': testUserIncidents[i].user_name,
                 'timeOfIncident': testUserIncidents[i].time_of_incident,
                 'type': testUserIncidents[i].type,
                 'description': testUserIncidents[i].description,
-                'coordinates': testUserIncidents[i].coordinates.toString(),
+                'coordinates': testUserIncidents[i].coordinates.map(String),
                 'createdAt': testUserIncidents[i].created_at
             }
         )
