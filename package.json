@@ -11,9 +11,13 @@
     "migrate:test": "env NODE_ENV=test npm run migrate",
     "migrate:production": "heroku run npm run migrate",
     "predeploy": "npm audit",
-    "deploy": "git push heroku master"
+    "deploy": "git push heroku main",
+    "postdeploy": "npm run migrate:production"
   },
   "keywords": [],
+  "engines": {
+    "node": "14.7.0"
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {
