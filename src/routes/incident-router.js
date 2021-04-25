@@ -14,8 +14,14 @@ incidentRouter
         const token = authHeader && authHeader.split(' ')[1]
         if (token == null) return res.status(401)
         const userId = AuthService.verifyJwt(token).id
+        const userName = AuthService.verifyJwt(token).sub
 
-        const { userName, timeOfIncident, type, coordinates } = req.body
+        const { timeOfIncident, type, coordinates, description } = req.body
+
+        if(!timeOfIncident) 
+                return res.status(400).json({
+                    error: `Missing timeOfIncident in request body`
+                })
         const newIncident = {
             'user_name': userName,
             'time_of_incident': timeOfIncident,
@@ -24,11 +30,14 @@ incidentRouter
         }
 
         for (const [key, value] of Object.entries(newIncident))
-            if(value == null)
+            if(value.length === 0)
                 return res.status(400).json({
                     error: `Missing '${key}' in request body`
                 })
+            
+            
         newIncident.user_id = userId
+        newIncident.description = description
 
         IncidentService.insertIncident(
             req.app.get('db'),
@@ -99,18 +108,20 @@ incidentRouter
     })
     .patch(jsonBodyParser, (req, res, next) => {
         const { timeOfIncident, type, description, coordinates } = req.body
+        if(!timeOfIncident) 
+                return res.status(400).json({
+                    error: `Missing timeOfIncident in request body`
+                })
         const incidentToUpdate = { 
             'time_of_incident': timeOfIncident, 
             type, description, 
             coordinates 
         }
 
-        const numberOfValues = Object.values(incidentToUpdate).filter(Boolean).length
-        if(numberOfValues === 0)
+        for (const [key, value] of Object.entries(incidentToUpdate))
+        if(value.length === 0)
             return res.status(400).json({
-                error: {
-                    message: `Request body must contain timeOfIncident, description, type or coordinates.`
-                }
+                error: `Missing '${key}' in request body`
             })
 
         IncidentService.updateIncident(

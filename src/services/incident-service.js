@@ -43,11 +43,12 @@ const IncidentService = {
     serializeIncident(incident) {
         return{
             id: incident.id,
+            userId: incident.user_id,
             userName: xss(incident.user_name),
             timeOfIncident: new Date(incident.time_of_incident),
             type: incident.type,
             description: xss(incident.description),
-            coordinates: xss(incident.coordinates),
+            coordinates: incident.coordinates,
             createdAt: incident.created_at
         }
     }
